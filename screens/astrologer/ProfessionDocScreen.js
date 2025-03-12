@@ -1,8 +1,11 @@
 import React from 'react'
+import { Text, View } from 'react-native'
 
 function ProfessionDocScreen() {
   return (
-    <div>ProfessionDocScreen</div>
+    <View>
+        <Text>Profession Doc</Text>
+        </View>
   )
 }
 

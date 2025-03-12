@@ -1,8 +1,12 @@
 import React from 'react'
+import { Text, View } from 'react-native'
+
 
 function AwaitingVerficationScreen() {
   return (
-    <div>AwaitingVerficationScreen</div>
+    <View>
+        <Text>Awaiting Verification</Text>
+        </View>
   )
 }
 

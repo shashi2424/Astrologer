@@ -1,5 +1,5 @@
 // screens/ProfessionScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -18,15 +18,22 @@ const ProfessionScreen = ({ navigation, route }) => {
   const [description, setDescription] = useState('');
   const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   
   // Add a ref for controlling focus and preventing blinking
   const initialRenderRef = React.useRef(true);
   
-  // useEffect to prevent screen blinking on navigation
-  React.useEffect(() => {
+  // useLayoutEffect instead of useEffect to prevent flashing
+  // This runs synchronously before browser paint
+  useLayoutEffect(() => {
     // Skip initial render animation
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
+      
+      // Short timeout to ensure component is fully mounted
+      setTimeout(() => {
+        setIsReady(true);
+      }, 50);
     }
   }, []);
   
@@ -39,13 +46,14 @@ const ProfessionScreen = ({ navigation, route }) => {
       // Show validation error (could be an Alert, but using inline validation for this example)
       return;
     }
-    navigation.navigate('ProfessionDocScreen')
+    
     // Navigate to next screen with user data
+    navigation.navigate('ProfileScreen')
     // navigation.navigate('PaymentScreen', {
     //   phoneNumber,
     //   fullName,
     //   description,
-    //   profession: selectedProfession
+    //   languages: selectedLanguages
     // });
   };
   
@@ -65,7 +73,6 @@ const ProfessionScreen = ({ navigation, route }) => {
     }
   };
 
-  
   const languages = [
     { id: 1, name: 'Telugu' },
     { id: 2, name: 'Tamil' },
@@ -76,6 +83,15 @@ const ProfessionScreen = ({ navigation, route }) => {
     { id: 7, name: 'Malayalam' },
     { id: 8, name: 'Marathi' },
   ];
+  
+  // Don't render anything until ready
+  if (!isReady) {
+    return (
+      <View style={styles.container}>
+        {/* Empty view while loading to prevent flash */}
+      </View>
+    );
+  }
   
   return (
     <KeyboardAvoidingView 
@@ -146,6 +162,16 @@ const ProfessionScreen = ({ navigation, route }) => {
             </View>
             <Text style={styles.arrowIcon}>→</Text>
           </TouchableOpacity>
+
+          {/* Show selected languages if any */}
+          {selectedLanguages.length > 0 && (
+            <View style={styles.selectedLanguagesContainer}>
+              <Text style={styles.selectedLanguagesLabel}>Selected Languages:</Text>
+              <Text style={styles.selectedLanguagesText}>
+                {selectedLanguages.join(', ')}
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
       
@@ -197,14 +223,11 @@ const ProfessionScreen = ({ navigation, route }) => {
         </View>
       )}
       
-      {/* Footer */}
+      {/* Footer - only render when component is fully ready */}
       <View style={styles.footer}>
         <View style={styles.profilePreview}>
           <Text style={styles.previewName}>
             {fullName || 'full name'}
-          </Text>
-          <Text style={styles.previewOccupation}>
-            OCCUPATION
           </Text>
         </View>
         
@@ -319,7 +342,7 @@ const styles = StyleSheet.create({
     borderColor: '#333333',
     borderRadius: 8,
     backgroundColor: 'transparent',
-    marginBottom: 25,
+    marginBottom: 15,
   },
   languageButtonContent: {
     flexDirection: 'row',
@@ -348,36 +371,19 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 20,
   },
-  // Occupation styles
-  occupationSection: {
-    marginTop: 10,
+  // Selected languages display
+  selectedLanguagesContainer: {
+    marginBottom: 25,
+    paddingVertical: 10,
   },
-  professionOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginLeft: -5,
-    marginRight: -5,
+  selectedLanguagesLabel: {
+    fontSize: 12,
+    color: '#888888',
+    marginBottom: 5,
   },
-  professionButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginRight: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#333333',
-    backgroundColor: 'transparent',
-  },
-  selectedProfession: {
-    backgroundColor: '#00C853',
-    borderColor: '#00C853',
-  },
-  professionText: {
+  selectedLanguagesText: {
     color: '#FFFFFF',
     fontSize: 14,
-  },
-  selectedProfessionText: {
-    color: '#000000',
   },
   // Footer Styles
   footer: {
@@ -394,12 +400,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  previewOccupation: {
-    color: '#888888',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    marginTop: 4,
   },
   nextButton: {
     backgroundColor: '#000000',
