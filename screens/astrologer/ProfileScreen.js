@@ -9,7 +9,7 @@ import {
   Switch
 } from 'react-native';
 
-const ProfileScreen = ({ navigation }) => {
+const ProfileScreen = ({route, navigation }) => {
   // State for online/offline status
   const [chatStatus, setChatStatus] = useState(false); // offline by default
   const [callStatus, setCallStatus] = useState(true); // online by default

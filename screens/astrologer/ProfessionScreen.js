@@ -48,13 +48,13 @@ const ProfessionScreen = ({ navigation, route }) => {
     }
     
     // Navigate to next screen with user data
-    navigation.navigate('ProfileScreen')
-    // navigation.navigate('PaymentScreen', {
-    //   phoneNumber,
-    //   fullName,
-    //   description,
-    //   languages: selectedLanguages
-    // });
+    // navigation.navigate('ProfileScreen')
+    navigation.navigate('ProfileScreen', {
+      phoneNumber,
+      fullName,
+      description,
+      languages: selectedLanguages
+    });
   };
   
   const openLanguageModal = () => {
