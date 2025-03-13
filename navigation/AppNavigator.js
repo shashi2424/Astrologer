@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
@@ -10,10 +10,19 @@ import AwaitingVerficationScreen from '../screens/astrologer/AwaitingVerfication
 import ProfileScreen from '../screens/astrologer/ProfileScreen';
 import PrivacyScreen from '../screens/astrologer/PrivacyPolicyScreen';
 import TermsScreen from '../screens/astrologer/TermsOfUseScreen';
-
+import ProfileEditScreen from '../screens/astrologer/ProfileEditScreen';
+import ChatScreen from '../screens/astrologer/ChatScreen';
+import ChatProfileScreen from '../screens/astrologer/ChatProfileScreen';
+import ChatEndProfileScreen from '../screens/astrologer/ChatEndProfileScreen';
+import CallsScreen from '../screens/astrologer/CallsScreen';
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
+  useEffect(() => {
+    console.log('AppNavigator mounted, screens available:');
+    console.log('- ChatEndProfile is configured with:', ChatEndProfileScreen);
+  }, []);
+
   return (
     <NavigationContainer>
       <Stack.Navigator 
@@ -29,6 +38,18 @@ const AppNavigator = () => {
          <Stack.Screen name="ProfessionDocScreen" component={ProfessionDocScreen} />
          <Stack.Screen name="AwaitingVerficationScreen" component={AwaitingVerficationScreen} />
          <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+         <Stack.Screen name="CallsScreen" component={CallsScreen} />
+         <Stack.Screen name="ProfileEditScreen" component={ProfileEditScreen} />
+         <Stack.Screen name="ChatScreen" component={ChatScreen} />
+         <Stack.Screen name="ChatProfileScreen" component={ChatProfileScreen} />
+         <Stack.Screen 
+           name="ChatEndProfile" 
+           component={ChatEndProfileScreen} 
+           options={{ 
+             gestureEnabled: false,
+             animationEnabled: true 
+           }}
+         />
          <Stack.Screen name="PrivacyScreen" component={PrivacyScreen} />
          <Stack.Screen name="TermsScreen" component={TermsScreen} />
 
