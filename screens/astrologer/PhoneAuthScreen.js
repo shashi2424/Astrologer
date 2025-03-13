@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { validatePhoneNumber } from '../../utils/helpers';
 import { Button } from '../../components/Button';
-// import { sendVerificationCode } from '../services/api';
+import api from "../../services/api"
 
 const PhoneAuthScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -32,19 +32,32 @@ const PhoneAuthScreen = ({ navigation }) => {
     try {
       // setIsLoading(true);
       // Call API to send verification code
-      // const response = await sendVerificationCode(phoneNumber);
+      const response = await sendVerificationCode(phoneNumber);
       // Navigate to verification screen with the phone number
-      console.log(phoneNumber,"----------------->phone Numbver")
-      navigation.navigate('VerificationScreen', { 
-        phoneNumber,
-        verificationId: "123"
-      });
+      if(parseInt(response?.success_code)==1){
+        navigation.navigate('VerificationScreen', { 
+          phoneNumber
+        });
+      }
+      else{
+        Alert.alert(response?.message)
+      }
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to send verification code');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const sendVerificationCode = async(phnumber)=>{
+    try {
+    data ={"mobile": phnumber}
+    const response = await api.post('/send-otp',data);
+    return response?.data
+  } catch (error) {
+    throw error;
+  }
+  }
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

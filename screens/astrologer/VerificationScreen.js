@@ -9,11 +9,12 @@ import {
 } from 'react-native';
 
 import { Button } from '../../components/Button';
-// import { verifyCode, resendVerificationCode } from '../services/api';
+import api from "../../services/api"
+
 
 const VerificationScreen = ({ route, navigation }) => {
 
-  const { phoneNumber, verificationId } = route.params;
+  const { phoneNumber } = route.params;
   
   const [code, setCode] = useState('');
   const [timer, setTimer] = useState(60);
@@ -34,31 +35,79 @@ const VerificationScreen = ({ route, navigation }) => {
   }, [timer]);
   
   const handleVerification = async () => {
-    if (code.length !== 6) {
-      Alert.alert('Invalid Code', 'Please enter the 6-digit verification code');
+    if (code.length !== 4) {
+      Alert.alert('Invalid Code', 'Please enter the 4-digit verification code');
       return;
     }
     
     try {
       // setIsLoading(true);
       console.log("Inside verification screen")
-      navigation.navigate('ProfessionScreen');
+      // navigation.navigate('ProfessionScreen');
       // Verify the code
-      // await verifyCode(verificationId, code);
+      const resp = await verifyCode(phoneNumber, code);
+      if(parseInt(resp?.success_code)==1){
+        Alert.alert('Success', 'OTP Verified successfully');
+
+        if(parseInt(resp?.profile_status)==0){
+          navigation.navigate('ProfessionScreen',{ 
+            phoneNumber
+          });
+        }else{
+         if(parseInt(resp?.is_verified)==1){
+          navigation.navigate('ProfileScreen',{ 
+            phoneNumber
+          });
+         }else{
+          navigation.navigate('ProfileScreen',{ 
+            phoneNumber
+          });
+         }
+        }
+
+      }
+    
+      else{
+        Alert.alert(resp?.message|| "Something Went wrong");
+        return;
+      }
+      
       // Navigate to the main app or profile setup
       // navigation.navigate('ProfileSetupScreen');
     } catch (error) {
+      console.log(error,"------------------_>handleVerification error")
       Alert.alert('Verification Failed', error.message || 'Please try again');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const verifyCode = async (phoneNumber,code)=>{
+  try {
+    data ={"mobile": phoneNumber,"otp":code}
+    const response = await api.post('/verify-otp',data);
+    console.log(response?.data,"-------------------->response")
+    return response?.data
+  } catch (error) {
+    console.log(error,"---------------------->Verify code error")
+    throw error;
+  }
+  }
+
+    const resendVerificationCode = async(phoneNumber)=>{
+    try {
+    data ={"mobile": phoneNumber}
+    const response = await api.post('/send-otp',data);
+  } catch (error) {
+    throw error;
+  }
+  }
   
   const handleResendCode = async () => {
     try {
       setIsResending(true);
       // Resend verification code
-      // await resendVerificationCode(phoneNumber);
+      await resendVerificationCode(phoneNumber);
       setTimer(60);
       Alert.alert('Success', 'Verification code resent successfully');
     } catch (error) {
@@ -82,8 +131,8 @@ const VerificationScreen = ({ route, navigation }) => {
           value={code}
           onChangeText={setCode}
           keyboardType="number-pad"
-          maxLength={6}
-          placeholder="Enter 6-digit code"
+          maxLength={4}
+          placeholder="Enter 4-digit code"
           placeholderTextColor="#555555"
         />
       </View>
@@ -92,7 +141,7 @@ const VerificationScreen = ({ route, navigation }) => {
         title="Verify"
         onPress={handleVerification}
         isLoading={isLoading}
-        disabled={code.length !== 6 || isLoading}
+        disabled={code.length !== 4 || isLoading}
       />
       
       <View style={styles.resendContainer}>

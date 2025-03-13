@@ -9,8 +9,12 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Animated
+  Animated,
+  Image,
+  Alert
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import api from '../../services/api';
 
 const ProfessionScreen = ({ navigation, route }) => {
   const { phoneNumber, verificationId } = route.params || {};
@@ -19,6 +23,7 @@ const ProfessionScreen = ({ navigation, route }) => {
   const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
   
   // Add a ref for controlling focus and preventing blinking
   const initialRenderRef = React.useRef(true);
@@ -36,6 +41,18 @@ const ProfessionScreen = ({ navigation, route }) => {
       }, 50);
     }
   }, []);
+
+  // Request permission for accessing media library
+  useEffect(() => {
+    (async () => {
+      if (Platform.OS !== 'web') {
+        const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (galleryStatus.status !== 'granted') {
+          alert('Sorry, we need camera roll permissions to upload a profile picture!');
+        }
+      }
+    })();
+  }, []);
   
   const handleBack = () => {
     navigation.navigate('PhoneAuthScreen');
@@ -46,14 +63,22 @@ const ProfessionScreen = ({ navigation, route }) => {
       // Show validation error (could be an Alert, but using inline validation for this example)
       return;
     }
+    if(!profileImage){
+      Alert.alert('Please upload profile image')
+      return;
+    }
+    if(selectedLanguages.length === 0){
+      Alert.alert('Please Select atleast one language')
+      return;
+    }
     
-    // Navigate to next screen with user data
-    // navigation.navigate('ProfileScreen')
-    navigation.navigate('ProfileScreen', {
+    // Navigate to next screen with user data including profile image
+    navigation.navigate('ProfessionDocScreen', {
       phoneNumber,
       fullName,
       description,
-      languages: selectedLanguages
+      languages: selectedLanguages,
+      profileImage
     });
   };
   
@@ -71,6 +96,143 @@ const ProfessionScreen = ({ navigation, route }) => {
     } else {
       setSelectedLanguages([...selectedLanguages, language]);
     }
+  };
+
+  // Show image source selection modal
+  const [showImageSourceModal, setShowImageSourceModal] = useState(false);
+  
+  // Image picker function for selecting from gallery
+  const pickImageFromGallery = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      // setProfileImage(result.assets[0].uri);
+      
+      // Upload image to server
+      uploadProfileImage(result.assets[0].uri);
+    }
+    setShowImageSourceModal(false);
+  };
+  
+  // Image picker function for using camera
+  const takePhoto = async () => {
+    // Request camera permission
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Sorry, we need camera permissions to take a profile picture!');
+      setShowImageSourceModal(false);
+      return;
+    }
+    
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      // setProfileImage(result.assets[0].uri);
+      
+      // Upload image to server
+      uploadProfileImage(result.assets[0].uri);
+    }
+    setShowImageSourceModal(false);
+  };
+  
+  // Function to upload profile image to server
+ // Function to upload profile image to server
+  // Function to upload profile image to server
+  const uploadProfileImage = async (imageUri) => {
+    try {
+      // Create form data
+      const formData = new FormData();
+      
+      // Get the file name from the URI
+      const uriParts = imageUri.split('/');
+      const fileName = uriParts[uriParts.length - 1];
+      
+      // Extract file extension
+      const extension = imageUri.split('.').pop() || 'jpg';
+      
+      // Determine mime type based on extension
+      let mimeType = 'image/jpeg'; // Default
+      if (extension.toLowerCase() === 'png') {
+        mimeType = 'image/png';
+      } else if (extension.toLowerCase() === 'gif') {
+        mimeType = 'image/gif';
+      }
+      
+      // Log what we're trying to upload
+      console.log('Uploading image:', {
+        uri: imageUri,
+        name: fileName,
+        type: mimeType
+      });
+      
+      // Prepare file object - this is critical for Multer to recognize
+      const fileObj = {
+        uri: Platform.OS === 'android' ? imageUri : imageUri.replace('file://', ''),
+        name: fileName || `image.${extension}`,
+        type: mimeType
+      };
+      
+      // Append image to form-data with field name 'image' to match Multer
+      formData.append('image', fileObj);
+      
+      // Make request with explicit Content-Type header
+      const response = await api.post('/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        transformRequest: [function (data) {
+          // Don't touch the data
+          return data;
+        }],
+      });
+      
+      console.log('Upload response:', response.data);
+      
+      if (response.data && response.data.image_url) {
+        setProfileImage(response?.data?.image_url);
+        console.log('Profile image updated to:', response?.data?.image_url);
+      } else {
+        console.warn('Response did not contain image_url:', response.data);
+        Alert.alert('Upload Issue', 'Server response did not include the expected image URL');
+      }
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      
+      // Enhanced error logging
+      if (error.response) {
+        // Server responded with error
+        console.error('Error status:', error.response.status);
+        console.error('Error data:', error.response.data);
+        console.error('Error headers:', error.response.headers);
+        
+        Alert.alert(
+          'Upload Failed', 
+          `Server error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`
+        );
+      } else if (error.request) {
+        // Request made but no response received
+        console.error('No response received:', error.request);
+        Alert.alert('Network Issue', 'No response received from server. Check your connection.');
+      } else {
+        // Request setup error
+        console.error('Request error:', error.message);
+        Alert.alert('Upload Error', error.message);
+      }
+    }
+  };
+  
+  // Function to show image source options
+  const showImageOptions = () => {
+    setShowImageSourceModal(true);
   };
 
   const languages = [
@@ -117,6 +279,33 @@ const ProfessionScreen = ({ navigation, route }) => {
             </View>
             <Text style={styles.progressText}>1/3</Text>
           </View>
+        </View>
+
+        {/* Profile Picture Section */}
+        <View style={styles.profilePicSection}>
+          <TouchableOpacity 
+            style={styles.profilePicContainer}
+            onPress={showImageOptions}
+          >
+            {profileImage ? (
+              <View style={styles.profilePicWrapper}>
+                <Image 
+                  source={{ uri: profileImage }} 
+                  style={styles.profilePic} 
+                />
+                {/* <View style={styles.editIconContainer}>
+                  <Text style={styles.editIconText}>✎</Text>
+                </View> */}
+              </View>
+            ) : (
+              <View style={styles.profilePicPlaceholder}>
+                <Text style={styles.profilePicIcon}>+</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <Text style={styles.profilePicText}>
+            {profileImage ? 'Profile Picture' : 'Add profile picture'}
+          </Text>
         </View>
         
         {/* Form */}
@@ -223,21 +412,84 @@ const ProfessionScreen = ({ navigation, route }) => {
         </View>
       )}
       
+      {/* Image Source Selection Modal */}
+      {showImageSourceModal && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, styles.imageSourceModal]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Profile Picture</Text>
+              <TouchableOpacity onPress={() => setShowImageSourceModal(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.imageOptionsContainer}>
+              <TouchableOpacity 
+                style={styles.imageOptionButton} 
+                onPress={takePhoto}
+              >
+                <View style={styles.imageOptionIconContainer}>
+                  <Text style={styles.imageOptionIcon}>📷</Text>
+                </View>
+                <Text style={styles.imageOptionText}>Take Photo</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.imageOptionButton} 
+                onPress={pickImageFromGallery}
+              >
+                <View style={styles.imageOptionIconContainer}>
+                  <Text style={styles.imageOptionIcon}>🖼️</Text>
+                </View>
+                <Text style={styles.imageOptionText}>Choose from Gallery</Text>
+              </TouchableOpacity>
+              
+              {profileImage && (
+                <TouchableOpacity 
+                  style={[styles.imageOptionButton, styles.removeImageButton]} 
+                  onPress={() => {
+                    setProfileImage(null);
+                    setShowImageSourceModal(false);
+                  }}
+                >
+                  <View style={styles.imageOptionIconContainer}>
+                    <Text style={styles.imageOptionIcon}>🗑️</Text>
+                  </View>
+                  <Text style={styles.imageOptionText}>Remove Photo</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      )}
+      
       {/* Footer - only render when component is fully ready */}
       <View style={styles.footer}>
         <View style={styles.profilePreview}>
-          <Text style={styles.previewName}>
-            {fullName || 'full name'}
-          </Text>
+          {profileImage ? (
+            <View style={styles.profilePreviewWithImage}>
+              <Image 
+                source={{ uri: profileImage }} 
+                style={styles.previewProfilePic} 
+              />
+              <Text style={styles.previewName}>
+                {fullName || 'full name'}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.previewName}>
+              {fullName || 'full name'}
+            </Text>
+          )}
         </View>
         
         <TouchableOpacity 
           style={[
             styles.nextButton,
-            (!fullName) && styles.disabledButton
+            (!fullName || !profileImage) && styles.disabledButton
           ]}
           onPress={handleNext}
-          disabled={!fullName}
+          disabled={!fullName && !profileImage}
         >
           <Text style={styles.nextButtonText}>Next</Text>
           <Text style={styles.aboutYouText}>ABOUT YOU</Text>
@@ -303,6 +555,66 @@ const styles = StyleSheet.create({
   progressText: {
     color: '#FFFFFF',
     fontSize: 12,
+  },
+  // Profile Picture Section
+  profilePicSection: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  profilePicContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: '#00C853',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  profilePicWrapper: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  profilePic: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+  },
+  editIconContainer: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#00C853',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  editIconText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  profilePicPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+    backgroundColor: '#222222',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profilePicIcon: {
+    fontSize: 36,
+    color: '#FFFFFF',
+  },
+  profilePicText: {
+    color: '#00C853',
+    fontSize: 14,
   },
   form: {
     marginBottom: 30,
@@ -395,6 +707,17 @@ const styles = StyleSheet.create({
   },
   profilePreview: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  profilePreviewWithImage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  previewProfilePic: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 10,
   },
   previewName: {
     color: '#FFFFFF',
@@ -514,6 +837,36 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // Image Source Modal styles
+  imageSourceModal: {
+    paddingVertical: 25,
+  },
+  imageOptionsContainer: {
+    width: '100%',
+  },
+  imageOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
+  },
+  imageOptionIconContainer: {
+    width: 40,
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  imageOptionIcon: {
+    fontSize: 24,
+  },
+  imageOptionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  removeImageButton: {
+    marginTop: 10,
+    borderBottomWidth: 0,
   }
 });
 

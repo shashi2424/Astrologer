@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,56 @@ import {
   ScrollView,
   Switch
 } from 'react-native';
+import api from '../../services/api';
 
 const ProfileScreen = ({route, navigation }) => {
+
+  const { phoneNumber } = route.params;
+
+
   // State for online/offline status
-  const [chatStatus, setChatStatus] = useState(false); // offline by default
+  const [chatStatus, setChatStatus] = useState(true); // offline by default
   const [callStatus, setCallStatus] = useState(true); // online by default
   const [balance, setBalance] = useState(10000); // 10K balance
+  const [profile, setProfile] = useState([]);
+
+  // Function to update status on the server
+  const updateStatusOnServer = async (chat_value,call_value)=> {
+    try {
+
+      const response = await api.post('/update_call_status', {
+        phoneNumber,
+        chat_status: chat_value ? 1: 0,
+        call_status: call_value ? 1: 0
+      });
+      console.log('Status updated successfully:', response.data);
+      await fetchProfile();
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  };
+
+  // Watch for changes in chat or call status
+    // useEffect(() => {
+    //   updateStatusOnServer(chatStatus, callStatus);
+    // }, [chatStatus, callStatus]);
+
+    const handleToogle = async(value,type)=>{
+
+
+      let call_value = callStatus
+      let chat_value = chatStatus
+      if(type=="chat"){
+        setChatStatus(value);
+        chat_value = value
+      }else{
+        setCallStatus(value);
+        call_value = value
+      }
+
+      await updateStatusOnServer(chat_value,call_value);
+      
+    }
 
   // Function to handle viewing all transactions
   const handleViewTransactions = () => {
@@ -50,6 +94,24 @@ const ProfileScreen = ({route, navigation }) => {
     // navigation.navigate('EditProfileScreen');
   };
 
+  const fetchProfile = async () => {
+      try {
+        const response = await api.post('/get-profile',{phoneNumber});
+        const data = response?.data?.data;
+        setProfile(data);
+        setChatStatus( data?.chat_status ? true : false);
+        setCallStatus( data?.call_status ? true : false);
+        
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+  
+
   return (
     <View style={styles.container}>
       <ScrollView>
@@ -57,14 +119,14 @@ const ProfileScreen = ({route, navigation }) => {
         <View style={styles.profileSection}>
           <View style={styles.profileInfo}>
             <Image
-              source={{ uri: 'https://placehold.co/200x200/00CED1/FFFFFF.png?text=SK' }}
+              source={{ uri: profile?.profileImage }}
               style={styles.profileImage}
             />
             <View style={styles.doctorInfo}>
-              <Text style={styles.doctorName}>Dr. Shruti Kedia</Text>
-              <Text style={styles.specialization}>Dermatologist</Text>
-              <Text style={styles.languages}>telugu, hindi, english</Text>
-              <Text style={styles.experience}>exp: 2 years</Text>
+              <Text style={styles.doctorName}>{profile?.fullName || "Name"}</Text>
+              <Text style={styles.specialization}>{profile?.practiceAreas || "Specialization" }</Text>
+              <Text style={styles.languages}>{profile?.languages?.length > 0 ? profile?.languages?.join(', ') : 'None'}</Text>
+              <Text style={styles.experience}>exp: {profile?.experience || "Experience"} years</Text>
             </View>
             <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
               <Text style={styles.editIcon}>✎</Text>
@@ -90,7 +152,9 @@ const ProfileScreen = ({route, navigation }) => {
                 </Text>
                 <Switch
                   value={chatStatus}
-                  onValueChange={setChatStatus}
+                  onValueChange={(value) => {
+                    handleToogle(value,"chat")
+                  }}
                   trackColor={{ false: '#767577', true: '#4CD964' }}
                   thumbColor={'#f4f3f4'}
                 />
@@ -109,7 +173,9 @@ const ProfileScreen = ({route, navigation }) => {
                 </Text>
                 <Switch
                   value={callStatus}
-                  onValueChange={setCallStatus}
+                  onValueChange={(value) => {
+                    handleToogle(value,"call")
+                  }}
                   trackColor={{ false: '#767577', true: '#4CD964' }}
                   thumbColor={'#f4f3f4'}
                 />
