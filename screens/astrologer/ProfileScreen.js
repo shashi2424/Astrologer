@@ -35,19 +35,20 @@ const ProfileScreen = ({route, navigation }) => {
   // Function to navigate to calls screen
   const handleCallsScreen = () => {
     console.log('Navigate to calls screen');
+    navigation.navigate('CallsScreen');
     // navigation.navigate('CallsScreen');
   };
 
   // Function to navigate to chats screen
   const handleChatsScreen = () => {
     console.log('Navigate to chats screen');
-    // navigation.navigate('ChatsScreen');
+    navigation.navigate('ChatScreen');
   };
 
   // Function to edit profile
   const handleEditProfile = () => {
     console.log('Edit profile');
-    // navigation.navigate('EditProfileScreen');
+    navigation.navigate('ProfileEditScreen');
   };
 
   return (
