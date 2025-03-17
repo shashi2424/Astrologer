@@ -30,7 +30,7 @@ const PhoneAuthScreen = ({ navigation }) => {
     }
     
     try {
-      // setIsLoading(true);
+      setIsLoading(true);
       // Call API to send verification code
       const response = await sendVerificationCode(phoneNumber);
       // Navigate to verification screen with the phone number
@@ -52,7 +52,9 @@ const PhoneAuthScreen = ({ navigation }) => {
   const sendVerificationCode = async(phnumber)=>{
     try {
     data ={"mobile": phnumber}
+    console.log(data,"-------------->data")
     const response = await api.post('/send-otp',data);
+    console.log(response?.data)
     return response?.data
   } catch (error) {
     throw error;

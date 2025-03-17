@@ -15,6 +15,9 @@ import ChatScreen from '../screens/astrologer/ChatScreen';
 import ChatProfileScreen from '../screens/astrologer/ChatProfileScreen';
 import ChatEndProfileScreen from '../screens/astrologer/ChatEndProfileScreen';
 import CallsScreen from '../screens/astrologer/CallsScreen';
+import EarningsPageScreen from '../screens/astrologer/EarningsPageScreen';
+import AllTransactionsScreen from '../screens/astrologer/AllTransactionsScreen';
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -50,8 +53,10 @@ const AppNavigator = () => {
              animationEnabled: true 
            }}
          />
+         <Stack.Screen name="EarningsPageScreen" component={EarningsPageScreen} />
          <Stack.Screen name="PrivacyScreen" component={PrivacyScreen} />
          <Stack.Screen name="TermsScreen" component={TermsScreen} />
+         <Stack.Screen name="AllTransactionsScreen" component={AllTransactionsScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>

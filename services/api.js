@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://172.16.21.249:5000', // Replace with your API URL
+  baseURL: 'http://172.16.20.38:5000/api/astrologer', // Replace with your API URL
   timeout: 10000, // Optional: timeout after 10 seconds
   headers: {
     'Content-Type': 'application/json',

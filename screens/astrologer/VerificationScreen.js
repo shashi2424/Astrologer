@@ -59,7 +59,7 @@ const VerificationScreen = ({ route, navigation }) => {
             phoneNumber
           });
          }else{
-          navigation.navigate('ProfileScreen',{ 
+          navigation.navigate('AwaitingVerficationScreen',{ 
             phoneNumber
           });
          }

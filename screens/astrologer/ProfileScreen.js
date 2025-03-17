@@ -25,7 +25,7 @@ const ProfileScreen = ({route, navigation }) => {
   const updateStatusOnServer = async (chat_value,call_value)=> {
     try {
 
-      const response = await api.post('/update_call_status', {
+      const response = await api.post('/update-call-status', {
         phoneNumber,
         chat_status: chat_value ? 1: 0,
         call_status: call_value ? 1: 0
@@ -62,7 +62,7 @@ const ProfileScreen = ({route, navigation }) => {
   // Function to handle viewing all transactions
   const handleViewTransactions = () => {
     console.log('View all transactions');
-    // navigation.navigate('TransactionsScreen');
+    navigation.navigate('EarningsPageScreen',{phoneNumber:phoneNumber});
   };
 
   // Function to view more details about a package
@@ -92,7 +92,10 @@ const ProfileScreen = ({route, navigation }) => {
   // Function to edit profile
   const handleEditProfile = () => {
     console.log('Edit profile');
-    navigation.navigate('ProfileEditScreen');
+    navigation.navigate('ProfileEditScreen', {
+      phoneNumber,
+      profile
+    });
   };
 
   const fetchProfile = async () => {
@@ -252,10 +255,13 @@ const ProfileScreen = ({route, navigation }) => {
           <Text style={styles.navIcon}>←</Text>
         </TouchableOpacity>
 
-        <View style={styles.balanceContainer}>
+        <TouchableOpacity 
+          style={styles.balanceContainer}
+          onPress={() => navigation.navigate('EarningPage', { phoneNumber })}
+        >
           <Text style={styles.balanceLabel}>BALANCE</Text>
           <Text style={styles.balanceAmount}>₹ {balance/1000}K</Text>
-        </View>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.navButton} onPress={handleCallsScreen}>
           <Text style={styles.navIcon}>📞</Text>
