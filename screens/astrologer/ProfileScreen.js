@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,23 +8,111 @@ import {
   ScrollView,
   Switch
 } from 'react-native';
-import api from '../../services/api';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../services/api'; // Re-enable API import
 
 const ProfileScreen = ({route, navigation }) => {
-
-  const { phoneNumber } = route.params;
-
-
+  // Create a state for the phone number that persists across remounts
+  const [phoneNumberToUse, setPhoneNumberToUse] = useState('');
+  
+  // First mount effect - initialize from route params or AsyncStorage
+  useEffect(() => {
+    const initializePhoneNumber = async () => {
+      try {
+        // Get the stored phone number
+        const storedNumber = await AsyncStorage.getItem('loggedInPhoneNumber');
+        
+        // If we have a new phone number from route params, use and store it
+        if (route.params?.phoneNumber && route.params.phoneNumber.length > 0) {
+          console.log('Using phone number from route params:', route.params.phoneNumber);
+          
+          // If this is a different number than what we have stored (new login)
+          if (storedNumber !== route.params.phoneNumber) {
+            console.log('NEW LOGIN DETECTED - Storing new phone number:', route.params.phoneNumber);
+            await AsyncStorage.setItem('loggedInPhoneNumber', route.params.phoneNumber);
+          }
+          
+          setPhoneNumberToUse(route.params.phoneNumber);
+        } 
+        // Otherwise use the stored number if available
+        else if (storedNumber) {
+          console.log('Using stored phone number:', storedNumber);
+          setPhoneNumberToUse(storedNumber);
+        }
+      } catch (error) {
+        console.error('Error initializing phone number:', error);
+      }
+    };
+    
+    initializePhoneNumber();
+  }, []);
+  
+  // This runs whenever the component comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const refreshPhoneNumber = async () => {
+        try {
+          // Always get the stored number when coming back to this screen
+          const storedNumber = await AsyncStorage.getItem('loggedInPhoneNumber');
+          
+          if (storedNumber) {
+            console.log('FOCUS: Retrieved stored phone number:', storedNumber);
+            
+            // Update our state if needed
+            if (phoneNumberToUse !== storedNumber) {
+              console.log('FOCUS: Updating phone number to match stored value:', storedNumber);
+              setPhoneNumberToUse(storedNumber);
+            }
+            
+            // Always fetch the profile with the correct number
+            fetchProfileWithNumber(storedNumber);
+          }
+        } catch (error) {
+          console.error('Error refreshing phone number on focus:', error);
+        }
+      };
+      
+      refreshPhoneNumber();
+      
+      return () => {
+        // Cleanup function when screen loses focus
+      };
+    }, [phoneNumberToUse])
+  );
+  
+  // Log the current phone number being used
+  console.log('Current phoneNumber being used:', phoneNumberToUse);
+  
   // State for online/offline status
-  const [chatStatus, setChatStatus] = useState(true); // offline by default
-  const [callStatus, setCallStatus] = useState(true); // online by default
-  const [balance, setBalance] = useState(10000); // 10K balance
+  const [chatStatus, setChatStatus] = useState(true);
+  const [callStatus, setCallStatus] = useState(true);
+  const [balance, setBalance] = useState(10000);
   const [profile, setProfile] = useState([]);
 
-  // Function to update status on the server
-  const updateStatusOnServer = async (chat_value,call_value)=> {
+  // Function to get the current phone number (for use in functions)
+  const getCurrentPhoneNumber = async () => {
     try {
+      // First try to get from AsyncStorage (most reliable)
+      const storedNumber = await AsyncStorage.getItem('loggedInPhoneNumber');
+      if (storedNumber) {
+        return storedNumber;
+      }
+      // Fall back to our state if storage fails
+      return phoneNumberToUse;
+    } catch (error) {
+      console.error('Error getting current phone number:', error);
+      // Last resort fallback
+      return phoneNumberToUse;
+    }
+  };
 
+  // Function to update status on the server
+  const updateStatusOnServer = async (chat_value, call_value) => {
+    try {
+      const phoneNumber = await getCurrentPhoneNumber();
+      console.log('Updating status for phoneNumber:', phoneNumber);
+      
       const response = await api.post('/update-call-status', {
         phoneNumber,
         chat_status: chat_value ? 1: 0,
@@ -37,38 +125,35 @@ const ProfileScreen = ({route, navigation }) => {
     }
   };
 
-  // Watch for changes in chat or call status
-    // useEffect(() => {
-    //   updateStatusOnServer(chatStatus, callStatus);
-    // }, [chatStatus, callStatus]);
-
-    const handleToogle = async(value,type)=>{
-
-
-      let call_value = callStatus
-      let chat_value = chatStatus
-      if(type=="chat"){
-        setChatStatus(value);
-        chat_value = value
-      }else{
-        setCallStatus(value);
-        call_value = value
-      }
-
-      await updateStatusOnServer(chat_value,call_value);
-      
+  const handleToogle = async(value, type) => {
+    let call_value = callStatus;
+    let chat_value = chatStatus;
+    if(type=="chat"){
+      setChatStatus(value);
+      chat_value = value;
+    } else {
+      setCallStatus(value);
+      call_value = value;
     }
 
+    await updateStatusOnServer(chat_value, call_value);
+  };
+
   // Function to handle viewing all transactions
-  const handleViewTransactions = () => {
-    console.log('View all transactions');
-    navigation.navigate('EarningsPageScreen',{phoneNumber:phoneNumber});
+  const handleViewTransactions = async () => {
+    const phoneNumber = await getCurrentPhoneNumber();
+    console.log('View all transactions for phoneNumber:', phoneNumber);
+    navigation.navigate('EarningsPageScreen', { phoneNumber });
   };
 
   // Function to view more details about a package
-  const handleViewPackage = (packageId) => {
-    console.log(`View more details for package ${packageId}`);
-    // navigation.navigate('PackageDetailScreen', { packageId });
+  const handleViewPackage = async (packageId) => {
+    const phoneNumber = await getCurrentPhoneNumber();
+    console.log(`View more details for package ${packageId} with phoneNumber:`, phoneNumber);
+    navigation.navigate('PackageDetailsScreen', { 
+      packageId,
+      phoneNumber
+    });
   };
 
   // Function to navigate back
@@ -77,44 +162,62 @@ const ProfileScreen = ({route, navigation }) => {
   };
 
   // Function to navigate to calls screen
-  const handleCallsScreen = () => {
-    console.log('Navigate to calls screen');
-    navigation.navigate('CallsScreen');
-    // navigation.navigate('CallsScreen');
+  const handleCallsScreen = async () => {
+    const phoneNumber = await getCurrentPhoneNumber();
+    console.log('Navigate to calls screen with phoneNumber:', phoneNumber);
+    navigation.navigate('MessagingScreen', { 
+      initialTab: 'Calls',
+      phoneNumber
+    });
   };
 
   // Function to navigate to chats screen
-  const handleChatsScreen = () => {
-    console.log('Navigate to chats screen');
-    navigation.navigate('ChatScreen');
+  const handleChatPress = async () => {
+    const phoneNumber = await getCurrentPhoneNumber();
+    console.log('Navigate to Chat screen with phoneNumber:', phoneNumber);
+    navigation.navigate('MessagingScreen', { 
+      initialTab: 'Chat',
+      phoneNumber
+    });
   };
 
   // Function to edit profile
-  const handleEditProfile = () => {
-    console.log('Edit profile');
+  const handleEditProfile = async () => {
+    const phoneNumber = await getCurrentPhoneNumber();
+    console.log('Edit profile for phoneNumber:', phoneNumber);
     navigation.navigate('ProfileEditScreen', {
       phoneNumber,
       profile
     });
   };
 
-  const fetchProfile = async () => {
-      try {
-        const response = await api.post('/get-profile',{phoneNumber});
-        const data = response?.data?.data;
-        setProfile(data);
-        setChatStatus( data?.chat_status ? true : false);
-        setCallStatus( data?.call_status ? true : false);
-        
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      }
-    };
+  // Function to fetch profile with a specific number
+  const fetchProfileWithNumber = async (numberToUse) => {
+    try {
+      console.log('Fetching profile for phoneNumber:', numberToUse);
+      const response = await api.post('/get-profile', { phoneNumber: numberToUse });
+      const data = response?.data?.data;
+      setProfile(data);
+      setChatStatus(data?.chat_status ? true : false);
+      setCallStatus(data?.call_status ? true : false);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
 
+  // Main fetch profile function
+  const fetchProfile = async () => {
+    const phoneNumber = await getCurrentPhoneNumber();
+    await fetchProfileWithNumber(phoneNumber);
+  };
+
+  // useEffect for initial profile fetch after phoneNumberToUse is set
   useEffect(() => {
-    fetchProfile();
-  }, []);
-  
+    if (phoneNumberToUse) {
+      console.log('Phone number state updated, fetching profile for:', phoneNumberToUse);
+      fetchProfileWithNumber(phoneNumberToUse);
+    }
+  }, [phoneNumberToUse]);
 
   return (
     <View style={styles.container}>
@@ -125,6 +228,7 @@ const ProfileScreen = ({route, navigation }) => {
             <Image
               source={{ uri: profile?.profileImage }}
               style={styles.profileImage}
+              defaultSource={{ uri: 'https://placehold.co/100x100' }}
             />
             <View style={styles.doctorInfo}>
               <Text style={styles.doctorName}>{profile?.fullName || "Name"}</Text>
@@ -203,7 +307,11 @@ const ProfileScreen = ({route, navigation }) => {
             Select current packages to receive more customer calls and chat
           </Text>
 
-          <View style={styles.packageCards}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.packageScrollContainer}
+          >
             {/* Package 1 */}
             <View style={[styles.packageCard, styles.packageGreen]}>
               <View style={styles.packageContent}>
@@ -245,7 +353,28 @@ const ProfileScreen = ({route, navigation }) => {
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+            
+            {/* Package 3 */}
+            <View style={[styles.packageCard, styles.packageGreen]}>
+              <View style={styles.packageContent}>
+                <Text style={styles.packageTitle}>package 3</Text>
+                <Text style={styles.packageDescription}>
+                  talk to experts doctors related to health, medicines
+                </Text>
+                <Image
+                  source={{ uri: 'https://placehold.co/100x100/4CAF50/FFFFFF.png?text=P3' }}
+                  style={styles.packageImage}
+                />
+                <TouchableOpacity
+                  style={styles.moreButton}
+                  onPress={() => handleViewPackage(3)}
+                >
+                  <Text style={styles.moreButtonText}>more</Text>
+                  <Text style={styles.arrowIcon}>→</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
         </View>
       </ScrollView>
 
@@ -257,7 +386,11 @@ const ProfileScreen = ({route, navigation }) => {
 
         <TouchableOpacity 
           style={styles.balanceContainer}
-          onPress={() => navigation.navigate('EarningPage', { phoneNumber })}
+          onPress={async () => {
+            const phoneNumber = await getCurrentPhoneNumber();
+            console.log('Navigate to earnings with phoneNumber:', phoneNumber);
+            navigation.navigate('EarningsPageScreen', { phoneNumber });
+          }}
         >
           <Text style={styles.balanceLabel}>BALANCE</Text>
           <Text style={styles.balanceAmount}>₹ {balance/1000}K</Text>
@@ -268,7 +401,7 @@ const ProfileScreen = ({route, navigation }) => {
           <Text style={styles.navLabel}>Calls</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navButton} onPress={handleChatsScreen}>
+        <TouchableOpacity style={styles.navButton} onPress={handleChatPress}>
           <Text style={styles.navIcon}>💬</Text>
           <Text style={styles.navLabel}>Chats</Text>
         </TouchableOpacity>
@@ -397,14 +530,14 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginBottom: 20,
   },
-  packageCards: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  packageScrollContainer: {
+    marginVertical: 10,
   },
   packageCard: {
-    width: '48%',
+    width: 250,
     borderRadius: 8,
     overflow: 'hidden',
+    marginRight: 15,
     marginBottom: 20,
   },
   packageGreen: {

@@ -10,7 +10,7 @@ import {
   TextInput,
   ScrollView
 } from 'react-native';
-import api from '../../services/api';
+// import api from '../../services/api'; // Not needed for static design
 
 const AllTransactionsScreen = ({ navigation, route }) => {
   const { phoneNumber } = route.params || {};
@@ -23,40 +23,23 @@ const AllTransactionsScreen = ({ navigation, route }) => {
   const [filterType, setFilterType] = useState('all'); // 'all', 'chat', 'call'
   const [filterDate, setFilterDate] = useState('all'); // 'all', 'today', 'week', 'month', 'year'
 
-  // Fetch transactions data when component mounts
+  // Load static data when component mounts
   useEffect(() => {
-    fetchTransactionsData();
-  }, [phoneNumber]);
+    // Simulate loading for UI testing
+    setTimeout(() => {
+      loadStaticData();
+    }, 1000);
+  }, []);
 
-  // Function to fetch transactions data
-  const fetchTransactionsData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Fetch transaction data
-      const response = await api.post('/get-all-transactions', { phoneNumber });
-      const data = response?.data;
-      
-      if (data && Array.isArray(data.transactions)) {
-        setTransactions(data.transactions);
-        setFilteredTransactions(data.transactions);
-      } else {
-        // Use mock data for now
-        const mockData = mockTransactions();
-        setTransactions(mockData);
-        setFilteredTransactions(mockData);
-      }
-    } catch (error) {
-      console.error('Error fetching transactions data:', error);
-      setError('Failed to load transactions data. Please try again.');
-      // Use mock data if API fails
-      const mockData = mockTransactions();
-      setTransactions(mockData);
-      setFilteredTransactions(mockData);
-    } finally {
-      setIsLoading(false);
-    }
+  // Function to load static mock data
+  const loadStaticData = () => {
+    setIsLoading(true);
+    
+    const mockData = mockTransactions();
+    setTransactions(mockData);
+    setFilteredTransactions(mockData);
+    
+    setIsLoading(false);
   };
 
   // Function to go back
@@ -141,21 +124,37 @@ const AllTransactionsScreen = ({ navigation, route }) => {
   const mockTransactions = () => {
     // Generate 50 mock transactions
     const types = ['chat', 'call'];
-    const names = ['Fatima', 'Prasad', 'Vishwajeet', 'Ram Narayan', 'Dr. Ram Narayan'];
+    const names = ['Fatima', 'Prasad', 'Vishwajeet', 'Ram Narayan', 'Dr. Ram Narayan', 'Ayushi'];
     const transactions = [];
     
     for (let i = 0; i < 50; i++) {
       const randomDate = new Date();
       randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 365)); // Random date in the last year
+      const randomType = types[Math.floor(Math.random() * types.length)];
+      const randomName = names[Math.floor(Math.random() * names.length)];
+      
+      // Generate random duration between 5 and 60 minutes
+      const randomDuration = Math.floor(Math.random() * 56) + 5;
+      
+      // Generate random amount between 100 and 2000
+      const randomAmount = Math.floor(Math.random() * 1901) + 100;
+      
+      // Format amount with comma for thousands
+      const formattedAmount = randomAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      
+      // Generate order ID
+      const orderId = `#${Math.floor(Math.random() * 10000000000000)}`;
       
       transactions.push({
         id: i + 1,
-        userName: names[Math.floor(Math.random() * names.length)],
+        userName: randomName,
         userImage: 'https://placehold.co/100x100',
-        amount: 50,
+        amount: formattedAmount,
         timestamp: randomDate.toISOString(),
-        type: types[Math.floor(Math.random() * types.length)],
-        status: Math.random() > 0.2 ? 'completed' : 'pending'
+        type: randomType,
+        status: Math.random() > 0.2 ? 'completed' : 'pending',
+        duration: `${randomDuration} minutes`,
+        orderId: orderId
       });
     }
     
@@ -165,7 +164,10 @@ const AllTransactionsScreen = ({ navigation, route }) => {
 
   // Render a transaction item
   const renderTransactionItem = ({ item }) => (
-    <View style={styles.transactionItem}>
+    <TouchableOpacity 
+      style={styles.transactionItem}
+      onPress={() => navigation.navigate('PersonTransactionScreen', { transaction: item })}
+    >
       <View style={styles.transactionLeft}>
         <Image 
           source={{ uri: item.userImage || 'https://placehold.co/100x100' }} 
@@ -189,7 +191,7 @@ const AllTransactionsScreen = ({ navigation, route }) => {
           <Text style={styles.pendingText}>pending</Text>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -279,7 +281,7 @@ const AllTransactionsScreen = ({ navigation, route }) => {
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity 
             style={styles.retryButton} 
-            onPress={fetchTransactionsData}
+            onPress={loadStaticData}
           >
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>

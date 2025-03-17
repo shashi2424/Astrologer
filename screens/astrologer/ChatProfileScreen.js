@@ -178,11 +178,30 @@ const ChatProfileScreen = ({ route, navigation }) => {
     }, 100);
   };
 
+  // Handle navigation to MessagingScreen with chat tab active
+  const handleChatNavigation = () => {
+    navigation.navigate('MessagingScreen', { 
+      initialTab: 'Chat',
+      profile: profile
+    });
+  };
+
+  // Handle navigation to MessagingScreen with calls tab active
+  const handleCallsNavigation = () => {
+    navigation.navigate('MessagingScreen', { 
+      initialTab: 'Calls',
+      profile: profile
+    });
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('MessagingScreen', { initialTab: 'Chat' })} 
+          style={styles.backButton}
+        >
           <MaterialIcons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <View style={styles.profileInfo}>
@@ -199,26 +218,10 @@ const ChatProfileScreen = ({ route, navigation }) => {
           style={styles.endButton} 
           onPress={() => {
             try {
-              // Log to verify the navigation object and profile
-              console.log('Navigation object:', navigation);
-              console.log('Profile:', profile);
-              
-              // Calculate total call time - for demonstration we'll use a fixed time
-              const callDuration = '2 Minutes 44 seconds';
-              
-              // Create params with fallback for profile
-              const params = {
-                profile: profile || {
-                  name: 'User',
-                  imageUrl: 'https://via.placeholder.com/150'
-                },
-                callDuration: callDuration
-              };
-              
-              // Use reset navigation to ensure we go to the end screen
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'ChatEndProfile', params }],
+              // Navigate to chat end popup
+              navigation.navigate('ChatEndProfile', {
+                profile: profile,
+                callDuration: '2 Minutes 44 seconds'
               });
             } catch (error) {
               // Log any errors that occur during navigation
@@ -323,6 +326,37 @@ const ChatProfileScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         )}
       </KeyboardAvoidingView>
+
+      {/* <View style={styles.actionsContainer}>
+        <TouchableOpacity style={styles.actionButton} onPress={handleChatNavigation}>
+          <View style={styles.iconContainer}>
+            <MaterialIcons name="chat" size={24} color="white" />
+          </View>
+          <Text style={styles.actionText}>Chat</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} onPress={handleCallsNavigation}>
+          <View style={styles.iconContainer}>
+            <MaterialIcons name="call" size={24} color="white" />
+          </View>
+          <Text style={styles.actionText}>Call</Text>
+        </TouchableOpacity>
+      </View> */}
+
+      <TouchableOpacity 
+        style={styles.infoContainer}
+        onPress={() => {
+          // Navigate to ChatEndProfileScreen with transaction details
+          navigation.navigate('ChatEndProfile', {
+            profile: profile,
+            callDuration: '15 minutes'
+          });
+        }}
+      >
+        {/* <Text style={styles.infoTitle}>Last Conversation</Text>
+        <Text style={styles.infoText}>{profile.lastMessage}</Text>
+        <Text style={styles.timeStamp}>{profile.lastTexted}</Text> */}
+      </TouchableOpacity>
     </View>
   );
 };
@@ -337,7 +371,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    paddingTop: 50,
+    paddingTop: 25,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },
@@ -484,6 +518,47 @@ const styles = StyleSheet.create({
   testButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 32,
+  },
+  actionButton: {
+    alignItems: 'center',
+  },
+  iconContainer: {
+    backgroundColor: '#333',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  actionText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  infoContainer: {
+    padding: 16,
+    backgroundColor: '#111',
+    borderRadius: 8,
+  },
+  infoTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 16,
+    color: 'white',
+    marginBottom: 4,
+  },
+  timeStamp: {
+    fontSize: 14,
+    color: '#888',
   },
 });
 

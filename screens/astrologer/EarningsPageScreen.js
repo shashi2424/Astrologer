@@ -8,7 +8,7 @@ import {
   Image,
   ActivityIndicator
 } from 'react-native';
-import api from '../../services/api';
+// import api from '../../services/api'; // Not needed for static design
 
 const EarningPageScreen = ({  route,navigation }) => {
   const { phoneNumber } = route.params || {};
@@ -22,32 +22,24 @@ const EarningPageScreen = ({  route,navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch earnings data when component mounts
+  // Load static data when component mounts
   useEffect(() => {
-    fetchEarningsData();
-  }, [phoneNumber]);
+    // Simulate loading for UI testing
+    setTimeout(() => {
+      loadStaticData();
+    }, 1000);
+  }, []);
 
-  // Function to fetch earnings data
-  const fetchEarningsData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Fetch balance and transaction data
-      const response = await api.post('/get-earnings', { phoneNumber });
-      const data = response?.data;
-      
-      if (data) {
-        setReceived(data.received || 0);
-        setPending(data.pending || 0);
-        setTransactions(data.transactions || []);
-      }
-    } catch (error) {
-      console.error('Error fetching earnings data:', error);
-      setError('Failed to load earnings data. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+  // Function to load static mock data
+  const loadStaticData = () => {
+    setIsLoading(true);
+    
+    // Set static data values
+    setReceived(30043);
+    setPending(30043);
+    setTransactions(mockTransactions());
+    
+    setIsLoading(false);
   };
 
   // Function to handle viewing all transactions
@@ -229,15 +221,6 @@ const EarningPageScreen = ({  route,navigation }) => {
     return transactions;
   };
 
-  // For demo purposes, if no transactions from API, use mock data
-  useEffect(() => {
-    if (!isLoading && transactions.length === 0) {
-      setTransactions(mockTransactions());
-      setReceived(30043);
-      setPending(30043);
-    }
-  }, [isLoading, transactions]);
-
   return (
     <View style={styles.container}>
       {/* Header with back button */}
@@ -256,7 +239,7 @@ const EarningPageScreen = ({  route,navigation }) => {
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity 
             style={styles.retryButton} 
-            onPress={fetchEarningsData}
+            onPress={loadStaticData}
           >
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>

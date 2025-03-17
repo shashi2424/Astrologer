@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const ChatEndProfileScreen = ({ route, navigation }) => {
@@ -17,101 +17,38 @@ const ChatEndProfileScreen = ({ route, navigation }) => {
   }
   
   const { profile, callDuration } = route.params;
-  const [startTime] = useState(new Date());
-  const [currentTime, setCurrentTime] = useState(new Date());
-  
-  // For real-time updating of time displayed on screen
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  // Calculate elapsed time since the screen was shown
-  const getElapsedTime = () => {
-    const elapsedMilliseconds = currentTime - startTime;
-    
-    // If we have a fixed call duration from params, use that instead
-    if (callDuration) {
-      return callDuration;
-    }
-    
-    // Otherwise calculate elapsed time
-    const seconds = Math.floor(elapsedMilliseconds / 1000) % 60;
-    const minutes = Math.floor(elapsedMilliseconds / (1000 * 60));
-    
-    return `${minutes} Minutes ${seconds} seconds`;
-  };
-  
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with back button */}
-      <View style={styles.header}>
+      {/* Transparent overlay */}
+      <TouchableOpacity 
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={() => navigation.navigate('MessagingScreen', { initialTab: 'Chat' })}
+      />
+      
+      {/* Bottom popup */}
+      <View style={styles.popup}>
+        <Text style={styles.title}>Chat has ended</Text>
+        <Text style={styles.subtitle}>User has closed this session</Text>
+        
+        <View style={styles.timeContainer}>
+          <View style={styles.timeIconContainer}>
+            <MaterialIcons name="access-time" size={24} color="#999" />
+          </View>
+          <View>
+            <Text style={styles.timeLabel}>TOTAL CALL TIME</Text>
+            <Text style={styles.timeValue}>{callDuration}</Text>
+          </View>
+        </View>
+        
         <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
+          style={styles.closeButton}
+          onPress={() => navigation.navigate('MessagingScreen', { initialTab: 'Chat' })}
         >
-          <MaterialIcons name="arrow-back" size={24} color="white" />
+          <Text style={styles.closeButtonText}>Close</Text>
+          <MaterialIcons name="east" size={20} color="black" />
         </TouchableOpacity>
-        
-        <View style={styles.profileContainer}>
-          <Image 
-            source={{ uri: profile.imageUrl }} 
-            style={styles.profileImage} 
-          />
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{profile.name}</Text>
-            <Text style={styles.statusText}>closed</Text>
-          </View>
-        </View>
-        
-        <View style={styles.endedBadge}>
-          <Text style={styles.endedText}>Ended</Text>
-        </View>
-      </View>
-      
-      {/* Today label */}
-      <View style={styles.dateContainer}>
-        <Text style={styles.dateLabel}>TODAY</Text>
-      </View>
-      
-      {/* Main content */}
-      <View style={styles.chatContainer}>
-        {/* Messages would go here - empty for the ended call screen */}
-      </View>
-      
-      {/* Footer with call ended info */}
-      <View style={styles.footer}>
-        <View style={styles.footerContent}>
-          <Text style={styles.endedTitle}>Chat has ended</Text>
-          <Text style={styles.endedSubtitle}>User has closed this session</Text>
-          
-          <View style={styles.callTimeContainer}>
-            <View style={styles.callTimeIcon}>
-              <MaterialIcons name="access-time" size={24} color="#8a8a8a" />
-            </View>
-            <View style={styles.callTimeInfo}>
-              <Text style={styles.callTimeLabel}>TOTAL CALL TIME</Text>
-              <Text style={styles.callTimeDuration}>{getElapsedTime()}</Text>
-            </View>
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.closeButton}
-            onPress={() => {
-              // Use reset to go back to a known screen instead of 'Home'
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'ProfileScreen' }], // Using ProfileScreen as it definitely exists
-              });
-            }}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-            <MaterialIcons name="arrow-forward" size={24} color="black" />
-          </TouchableOpacity>
-        </View>
       </View>
     </SafeAreaView>
   );
@@ -120,111 +57,51 @@ const ChatEndProfileScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#075E54', // WhatsApp-like green for header
+    justifyContent: 'flex-end',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    paddingTop: 25,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  backButton: {
-    padding: 8,
-  },
-  profileContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginLeft: 8,
-  },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  profileInfo: {
-    marginLeft: 12,
-  },
-  profileName: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  statusText: {
-    color: '#CCC',
-    fontSize: 14,
-  },
-  endedBadge: {
-    backgroundColor: '#D93025', // Red color for the "Ended" badge
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  endedText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  dateContainer: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  dateLabel: {
-    backgroundColor: '#f0f0f0',
-    color: '#333',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-    fontSize: 14,
-  },
-  chatContainer: {
-    flex: 1,
-    backgroundColor: '#ECE5DD', // WhatsApp-like chat background
-  },
-  footer: {
+  popup: {
     backgroundColor: '#333',
-    padding: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 24,
   },
-  footerContent: {
-    paddingVertical: 20,
-  },
-  endedTitle: {
+  title: {
     color: 'white',
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
   },
-  endedSubtitle: {
-    color: '#8a8a8a',
+  subtitle: {
+    color: '#999',
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 32,
   },
-  callTimeContainer: {
+  timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginBottom: 32,
   },
-  callTimeIcon: {
+  timeIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#8a8a8a',
+    borderColor: '#999',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
   },
-  callTimeInfo: {
-    flex: 1,
-  },
-  callTimeLabel: {
-    color: '#8a8a8a',
+  timeLabel: {
+    color: '#999',
     fontSize: 12,
   },
-  callTimeDuration: {
+  timeValue: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
@@ -234,10 +111,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    padding: 16,
     borderRadius: 4,
-    marginTop: 16,
   },
   closeButtonText: {
     color: 'black',

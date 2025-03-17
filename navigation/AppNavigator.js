@@ -11,12 +11,13 @@ import ProfileScreen from '../screens/astrologer/ProfileScreen';
 import PrivacyScreen from '../screens/astrologer/PrivacyPolicyScreen';
 import TermsScreen from '../screens/astrologer/TermsOfUseScreen';
 import ProfileEditScreen from '../screens/astrologer/ProfileEditScreen';
-import ChatScreen from '../screens/astrologer/ChatScreen';
+import MessagingScreen from '../screens/astrologer/ChatScreen';
 import ChatProfileScreen from '../screens/astrologer/ChatProfileScreen';
 import ChatEndProfileScreen from '../screens/astrologer/ChatEndProfileScreen';
-import CallsScreen from '../screens/astrologer/CallsScreen';
 import EarningsPageScreen from '../screens/astrologer/EarningsPageScreen';
 import AllTransactionsScreen from '../screens/astrologer/AllTransactionsScreen';
+import PersonTransactionScreen from '../screens/astrologer/PersonTransactionScreen';
+import PackageDetailsScreen from '../screens/astrologer/PackageDetailsScreen';
 
 const Stack = createStackNavigator();
 
@@ -41,22 +42,26 @@ const AppNavigator = () => {
          <Stack.Screen name="ProfessionDocScreen" component={ProfessionDocScreen} />
          <Stack.Screen name="AwaitingVerficationScreen" component={AwaitingVerficationScreen} />
          <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
-         <Stack.Screen name="CallsScreen" component={CallsScreen} />
          <Stack.Screen name="ProfileEditScreen" component={ProfileEditScreen} />
-         <Stack.Screen name="ChatScreen" component={ChatScreen} />
+         <Stack.Screen name="MessagingScreen" component={MessagingScreen} />
          <Stack.Screen name="ChatProfileScreen" component={ChatProfileScreen} />
          <Stack.Screen 
            name="ChatEndProfile" 
            component={ChatEndProfileScreen} 
            options={{ 
              gestureEnabled: false,
-             animationEnabled: true 
+             animationEnabled: true,
+             cardStyle: { backgroundColor: 'transparent' },
+             presentation: 'transparentModal',
+             cardOverlayEnabled: true
            }}
          />
          <Stack.Screen name="EarningsPageScreen" component={EarningsPageScreen} />
          <Stack.Screen name="PrivacyScreen" component={PrivacyScreen} />
          <Stack.Screen name="TermsScreen" component={TermsScreen} />
          <Stack.Screen name="AllTransactionsScreen" component={AllTransactionsScreen} />
+         <Stack.Screen name="PersonTransactionScreen" component={PersonTransactionScreen} />
+         <Stack.Screen name="PackageDetailsScreen" component={PackageDetailsScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>
